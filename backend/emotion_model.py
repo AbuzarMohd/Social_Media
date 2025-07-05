@@ -129,7 +129,7 @@ def _demo(limit):
     return tweets[:limit]
 
 
-def _fetch_twitter(username: str, limit: int = 100) -> List[Dict[str, Any]]:(username: str, limit: int = 100) -> List[Dict[str, Any]]:
+def _fetch_twitter(username: str, limit: int = 100) -> List[Dict[str, Any]]:
     """Get up to `limit` recent tweets by @username.
 
     Uses the v2 Recent Search endpoint. Falls back to demo data if:
