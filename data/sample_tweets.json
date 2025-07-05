@@ -1,0 +1,17 @@
+[
+  {
+    "id": "0",
+    "time": "2025-01-01T12:00:00",
+    "text": "I am feeling so down today. Nothing seems to work."
+  },
+  {
+    "id": "1",
+    "time": "2025-01-02T09:30:00",
+    "text": "Sunshine and coffee make mornings better!"
+  },
+  {
+    "id": "2",
+    "time": "2025-01-03T23:45:00",
+    "text": "Why does life have to be this hard?"
+  }
+]
