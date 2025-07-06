@@ -232,7 +232,7 @@ def get_recent_posts(username: str, platform: str, limit: int = 100):
     return _fetch_reddit(username, limit)
 '''
 
-
+'''
 
 """Fetch recent posts from Twitter or Reddit with graceful fallback and rate‑limit handling."""
 import requests, datetime as dt
@@ -358,6 +358,92 @@ def _fetch_reddit(username: str, limit: int = 100) -> List[Dict[str, Any]]:
         }
         for p in posts
     ]
+
+
+def get_recent_posts(username: str, platform: str, limit: int = 100):
+    if platform == "Twitter":
+        return _fetch_twitter(username, limit)
+    return _fetch_reddit(username, limit)
+'''
+#using praw method
+"""Fetch recent posts from Twitter or Reddit with graceful fallback and rate-limit handling."""
+import requests, datetime as dt
+from typing import List, Dict, Any
+from config import get_settings
+from backend.utils import log
+
+TWITTER_URL = "https://api.twitter.com/2/tweets/search/recent"
+
+def _demo(limit):
+    import json, pathlib
+    json_path = pathlib.Path(__file__).parent.parent / "data" / "sample_tweets.json"
+    try:
+        with open(json_path, "r", encoding="utf-8") as f:
+            tweets = json.load(f)
+    except Exception as e:
+        log(f"[Demo] Could not load sample_tweets.json: {e}")
+        tweets = []
+    return tweets[:limit]
+
+
+def _fetch_twitter(username: str, limit: int = 100) -> List[Dict[str, Any]]:
+    cfg = get_settings()
+
+    if not cfg["TWITTER_BEARER"]:
+        log("[Twitter] Bearer token missing – using sample tweets.")
+        return _demo(limit)
+
+    query = f"from:{username} -is:retweet -is:reply"
+    headers = {"Authorization": f"Bearer {cfg['TWITTER_BEARER']}"}
+    params = {
+        "query": query,
+        "max_results": min(limit, 100),
+        "tweet.fields": "created_at,text",
+    }
+
+    try:
+        r = requests.get(TWITTER_URL, headers=headers, params=params, timeout=10)
+        if r.status_code == 429:
+            log("[Twitter] Rate limit hit (HTTP 429). Using sample data.")
+            return _demo(limit)
+        r.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        log(f"[Twitter] API error: {e}. Using sample data.")
+        return _demo(limit)
+
+    tweets = r.json().get("data", [])
+    if not tweets:
+        log("[Twitter] No tweets found – using sample data.")
+        return _demo(limit)
+
+    return [{"id": t["id"], "time": t["created_at"], "text": t["text"]} for t in tweets]
+
+
+def _fetch_reddit(username: str, limit: int = 100) -> List[Dict[str, Any]]:
+    import praw
+
+    cfg = get_settings()
+    try:
+        reddit = praw.Reddit(
+            client_id=cfg["REDDIT_CLIENT_ID"],
+            client_secret=cfg["REDDIT_CLIENT_SECRET"],
+            user_agent=cfg["REDDIT_USER_AGENT"]
+        )
+        user = reddit.redditor(username)
+        posts = []
+        for submission in user.submissions.new(limit=limit):
+            posts.append({
+                "id": submission.id,
+                "time": dt.datetime.utcfromtimestamp(submission.created_utc).isoformat(),
+                "text": (submission.selftext or submission.title)[:280],
+            })
+        if not posts:
+            log("[Reddit] No posts found – using sample data.")
+            return _demo(limit)
+        return posts
+    except Exception as e:
+        log(f"[Reddit] PRAW error: {e} – using sample data.")
+        return _demo(limit)
 
 
 def get_recent_posts(username: str, platform: str, limit: int = 100):
