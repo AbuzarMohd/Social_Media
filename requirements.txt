@@ -5,3 +5,4 @@ plotly>=5.21
 python-dotenv>=1.0
 langdetect>=1.0.9
 twilio>=8.0
+praw>=7.7.1
